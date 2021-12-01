@@ -29,5 +29,4 @@ object Values extends App{
   // Double
   var aDouble: Double = 3.14
   
-  
 }

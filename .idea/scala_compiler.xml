@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ScalaCompilerConfiguration">
+    <option name="deprecationWarnings" value="true" />
+    <option name="explainTypeErrors" value="true" />
     <profile name="sbt 1" modules="udemy-scala-beginners" />
+    <profile name="scala-3" modules="" />
   </component>
 </project>
