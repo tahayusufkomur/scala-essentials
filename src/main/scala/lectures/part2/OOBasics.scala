@@ -1,37 +1,25 @@
 package lectures.part2
 
-object OOBasics extends App{
-  
+object OOBasics extends App {
+
   val person = new Person("Yusuf", 26)
   println(person.age)
-  
+
   person.greet("YO YO")
 
-  val author = new Writer("Charles", "Dickens",1812)
+  val author = new Writer("Charles", "Dickens", 1812)
   val novel = new Novel("Great Expectations", 1861, author)
 
   println(s"Novel: ${novel.name}, release year:${novel.releaseYear}," +
     s" author: ${author.fullName()}")
-  
+
   println(s"Is Charles Dickens is author of Great Expectations? :${novel.isWrittenBy(author)}")
-  
+
   var counter = new Counter(10)
   println(counter.count)
   counter = counter.inc(10);
   println(counter.count)
 }
-
-// constructor
-class Person(val name:String,val age: Int){
-  
-  def greet(name:String): Unit = println(s"${this.name} says: Hi")
-  
-  // multiple constructors
-  
-  def this(name: String) = this(name, 0)
-  
-}
-
 
 /* 
 * Novel and a Writer class
@@ -46,20 +34,19 @@ class Person(val name:String,val age: Int){
 * - copy (new year of release) = new instance of novel with new year released*/
 
 
-class Writer(val fname: String, val sname: String, val byear: Int)
-{
+class Writer(val fname: String, val sname: String, val byear: Int) {
   def fullName(): String = (s"${this.fname} ${this.sname}")
 }
 
-class Novel(val name: String, val releaseYear: Int, val author: Writer){
-  //val authorAge = 
+class Novel(val name: String, val releaseYear: Int, val author: Writer) {
 
   def authorAge = releaseYear - author.byear
 
-  def isWrittenBy(author:Writer): Boolean = {
+  def isWrittenBy(author: Writer): Boolean = {
     if (author == this.author) true
     else false
   }
+
   def copy(newYear: Int): Novel = new Novel(this.name, newYear, this.author)
 }
 
@@ -75,22 +62,36 @@ class Novel(val name: String, val releaseYear: Int, val author: Writer){
 class Counter(val count: Int) {
   def inc = {
     println("Incrementing")
-    new Counter(count+1) // immutability
+    new Counter(count + 1) // immutability
   }
+
   def dec = {
     println("Decrementing")
-    new Counter(count-1)
+    new Counter(count - 1)
   }
+
   // overloading
   def inc(n: Int): Counter = {
     println(s"Incrementing ${n} times")
-    new Counter(this.count+n)
+    new Counter(this.count + n)
   }
+
   // overloading
   def dec(n: Int): Counter = {
     println(s"Decrementing ${n} times")
-    new Counter(this.count-n)
+    new Counter(this.count - n)
   }
+}
+
+// constructor
+class Person(val name: String, val age: Int) {
+
+  def greet(name: String): Unit = println(s"${this.name} says: Hi")
+
+  // multiple constructors
+
+  def this(name: String) = this(name, 0)
+
 }
 
 
