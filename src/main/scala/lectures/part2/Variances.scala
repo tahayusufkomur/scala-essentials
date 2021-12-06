@@ -77,4 +77,23 @@ object Variances extends App{
   // animalContainer.setValue(Dog("Spot"))
   val cat: Cat = catContainer.getValue // Oops, we'd end up with a Dog assigned to a Ca
   
+  // Bounded Types
+  
+  class Cage[A <: Animal](animal: A) // accepts subtypes of animal :> 
+  
+  val cage = new Cage(new Dog("Felix"))
+  
+  class Car
+  // val newCage = new Cage(new Car) not works
+  
+  // A Problem: Cat is animal, Dog is Animal. So
+  
+  class SomeList[+A] {
+    
+    // def add(element: A): SomeList[A] = ??? gives an error
+    // because when you make this, after you created a cat list
+    // you can add a dog to a list, and this makes the list animal list
+    // to solve this, we add the rule:
+    def add[B >: A] (element: B): SomeList[B] = ???
+  }
 }

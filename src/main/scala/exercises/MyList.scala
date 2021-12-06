@@ -1,60 +1,186 @@
 package exercises
 
-abstract class MyList {
+abstract class MyList[+A] { // covariance
 
-  /* 
-  * method head = first element of the list
-  * tail = remainder of the list
-  * isEmpty =  is this list empty
-  * add(int) = new list with this element added
-  * toString = a string representation of the list
-  * */
+  /*
+     head = first element of  the  list
+     tail = remainder of the list
+     isEmpty = is this list empty
+     add(int) => new list with this element added
+     toString => a string representation of the list
+   */
 
-  def head: Int
-
-  def tail: MyList
-
+  def head: A
+  def tail: MyList[A]
   def isEmpty: Boolean
-
-  def add(element: Int): MyList
-
+  def add[B >: A](element: B): MyList[B]
   def printElements: String
   // polymorphic call
   override def toString: String = "[" + printElements + "]"
 
+  // higher-order functions
+  def map[B](transformer: A => B): MyList[B] // takes A and transforms B, returns a new list with B
+  def flatMap[B](transformer: A => MyList[B]): MyList[B] // takes A and transforms B, returns a new list with B
+  def filter(predicate: A => Boolean): MyList[A] // takes A and predicate, returns predicated list
+
+  // concatenation
+  def ++[B >: A](list: MyList[B]): MyList[B]
+
+  // hofs
+  def foreach(f: A => Unit): Unit
+  def sort(compare: (A, A) => Int): MyList[A]
+  def zipWith[B, C](list: MyList[B], zip:(A, B) => C): MyList[C]
+  def fold[B](start: B)(operator: (B, A) => B): B
+
+  def reverse: MyList[A] = {
+    def reverseTailrec(input: MyList[A], result: MyList[A]): MyList[A] =
+      if (input.isEmpty) result
+      else reverseTailrec(input.tail, Cons(input.head, result))
+
+    reverseTailrec(this, Empty)
+  }
 }
 
-object Empty extends MyList {
-  def head: Int = throw new NoSuchElementException
-
-  def tail: MyList = throw new NoSuchElementException
-
+case object Empty extends MyList[Nothing] {
+  def head: Nothing = throw new NoSuchElementException
+  def tail: MyList[Nothing] = throw new NoSuchElementException
   def isEmpty: Boolean = true
+  def add[B >: Nothing](element: B): MyList[B] = new Cons(element, Empty)
+  def printElements: String = ""
 
-  def add(element: Int): MyList = new Cons(element, Empty)
+  def map[B](transformer: Nothing => B): MyList[B] = Empty
+  def flatMap[B](transformer: Nothing => MyList[B]): MyList[B] = Empty
+  def filter(predicate: Nothing => Boolean): MyList[Nothing] = Empty
 
-  def printElements: String = "none"
+  def ++[B >: Nothing](list: MyList[B]): MyList[B] = list
+
+  // hofs
+  def foreach(f: Nothing => Unit): Unit = ()
+  def sort(compare: (Nothing, Nothing) => Int) = Empty
+  def zipWith[B, C](list: MyList[B], zip: (Nothing, B) => C): MyList[C] =
+    if (!list.isEmpty) throw new RuntimeException("Lists do not have the same length")
+    else Empty
+  def fold[B](start: B)(operator: (B, Nothing) => B): B = start
+
 }
 
-class Cons(h: Int, t: MyList) extends MyList {
-  def head: Int = h
-
+case class Cons[+A](h: A, t: MyList[A]) extends MyList[A] {
+  def head: A = h
+  def tail: MyList[A] = t
   def isEmpty: Boolean = false
+  def add[B >: A](element: B): MyList[B] = new Cons(element, this)
+  def printElements: String =
+    if(t.isEmpty) "" + h
+    else s"$h ${t.printElements}"
 
-  def add(element: Int): MyList = new Cons(element, this)
+  /*
+    [1,2,3].filter(n % 2 == 0) =
+      [2,3].filter(n % 2 == 0) =
+      = new Cons(2, [3].filter(n % 2 == 0))
+      = new Cons(2, Empty.filter(n % 2 == 0))
+      = new Cons(2, Empty)
+   */
+  def filter(predicate: A => Boolean): MyList[A] =
+    if (predicate(h)) new Cons(h, t.filter(predicate))
+    else t.filter(predicate)
 
-  def printElements: String = {
-    if (tail.isEmpty) "" + h
-    else {
-      h + ", " + tail.printElements
-    }
+  /*
+    [1,2,3].map(n * 2)
+      = new Cons(2, [2,3].map(n * 2))
+      = new Cons(2, new Cons(4, [3].map(n * 2)))
+      = new Cons(2, new Cons(4, new Cons(6, Empty.map(n * 2))))
+      = new Cons(2, new Cons(4, new Cons(6, Empty))))
+   */
+  def map[B](transformer: A => B): MyList[B] =
+    new Cons(transformer(h), t.map(transformer))
+
+  /*
+    [1,2] ++ [3,4,5]
+    = new Cons(1, [2] ++ [3,4,5])
+    = new Cons(1, new Cons(2, Empty ++ [3,4,5]))
+    = new Cons(1, new Cons(2, new Cons(3, new Cons(4, new Cons(5)))))
+   */
+  def ++[B >: A](list: MyList[B]): MyList[B] = new Cons(h, t ++ list)
+  /*
+    [1,2].flatMap(n => [n, n+1])
+    = [1,2] ++ [2].flatMap(n => [n, n+1])
+    = [1,2] ++ [2,3] ++ Empty.flatMap(n => [n, n+1])
+    = [1,2] ++ [2,3] ++ Empty
+    = [1,2,2,3]
+   */
+  def flatMap[B](transformer: A => MyList[B]): MyList[B] =
+    transformer(h) ++ t.flatMap(transformer)
+
+  // hofs
+  def foreach(f: A => Unit): Unit = {
+    f(h)
+    t.foreach(f)
   }
 
-  def tail: MyList = t
+  def sort(compare: (A, A) => Int): MyList[A] = {
+    def insert(x: A, sortedList: MyList[A]): MyList[A] =
+      if (sortedList.isEmpty) new Cons(x, Empty)
+      else if (compare(x, sortedList.head) <= 0) new Cons(x, sortedList)
+      else new Cons(sortedList.head, insert(x, sortedList.tail))
+
+    val sortedTail = t.sort(compare)
+    insert(h, sortedTail)
+  }
+
+  def zipWith[B, C](list: MyList[B], zip: (A, B) => C): MyList[C] =
+    if (list.isEmpty) throw new RuntimeException("Lists do not have the same length")
+    else new Cons(zip(h, list.head), t.zipWith(list.tail, zip))
+
+  /*
+    [1,2,3].fold(0)(+) =
+    = [2,3].fold(1)(+) =
+    = [3].fold(3)(+) =
+    = [].fold(6)(+)
+    = 6
+   */
+  def fold[B](start: B)(operator: (B, A) => B): B =
+    t.fold(operator(start, h))(operator)
+
 }
 
 object ListTest extends App {
-  val list = new Cons(100, Empty)
-  println(list.head) // 100
-  println(list.add(4).add(3).add(2).add(1).toString) // 4
+  val listOfIntegers: MyList[Int] = new Cons(1, new Cons(2, new Cons(3, Empty)))
+  val cloneListOfIntegers: MyList[Int] = new Cons(1, new Cons(2, new Cons(3, Empty)))
+  val anotherListOfIntegers: MyList[Int] = new Cons(4, new Cons(5, Empty))
+  val listOfStrings: MyList[String] = new Cons("Hello", new Cons("Scala", Empty))
+
+  println(listOfIntegers.toString)
+  println(listOfStrings.toString)
+
+  println(listOfIntegers.map(_ * 2).toString)
+
+  println(listOfIntegers.filter(_ % 2 == 0).toString)
+
+  println((listOfIntegers ++ anotherListOfIntegers).toString)
+  println(listOfIntegers.flatMap(elem => new Cons(elem, new Cons(elem + 1, Empty))).toString)
+
+  println(cloneListOfIntegers == listOfIntegers)
+
+  listOfIntegers.foreach(println)
+  println(listOfIntegers.sort((x, y) => y - x))
+  println(anotherListOfIntegers.zipWith[String, String](listOfStrings, _ + "-" + _))
+  println(listOfIntegers.fold(0)(_ + _))
+
+  // for comprehensions
+  val combinations = for {
+    n <- listOfIntegers
+    string <- listOfStrings
+  } yield n + "-" + string
+  println(combinations)
+
+  def sort(list: MyList[Int]): MyList[Int] = {
+    def insertSort(sortedList: MyList[Int], elem: Int, lessThanElement: MyList[Int] = Empty): MyList[Int] =
+      if (sortedList.isEmpty || elem < sortedList.head) lessThanElement.reverse ++ Cons(elem, sortedList)
+      else insertSort(sortedList.tail, elem, Cons(sortedList.head, lessThanElement))
+
+    list.fold[MyList[Int]](Empty)((sorted, elem) => insertSort(sorted, elem))
+  }
+
+  println(sort(Cons(4, Cons(2, Cons(5, Cons(1, Cons(3, Empty)))))))
 }
+
