@@ -19,7 +19,7 @@ abstract class MyList {
   def add(element: Int): MyList
 
   def printElements: String
-
+  // polymorphic call
   override def toString: String = "[" + printElements + "]"
 
 }
